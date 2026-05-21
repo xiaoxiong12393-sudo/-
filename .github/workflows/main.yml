@@ -1,0 +1,30 @@
+name: build-tweak
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: clone-theos
+      run: |
+        git clone --depth=1 --recursive https://github.com/theos/theos.git ~/theos
+        echo "THEOS=~/theos" >> $GITHUB_ENV
+
+    - name: link-sdk
+      run: |
+        mkdir -p ~/theos/sdks
+        SYS_SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+        ln -s "$SYS_SDK_PATH" ~/theos/sdks/iPhoneOS16.6.sdk
+
+    - name: build-package
+      run: |
+        export THEOS=~/theos
+        export THEOS_PACKAGE_SCHEME=rootless
+        make package SYSROOT=~/theos/sdks/iPhoneOS16.6.sdk
+        
+    - name: upload-deb
+      uses: actions/upload-artifact@v4
+      with:
+        name: ScreenshotIsland-DEB
+        path: packages/*.deb
