@@ -2,7 +2,7 @@ name: Build Tweak
 on: [push, workflow_dispatch]
 jobs:
   build:
-    runs-on: macos-13 # 固定使用 macOS 13，避免最新系统自带的 Clang 编译器太新导致编译报错
+    runs-on: macos-13
     steps:
     - uses: actions/checkout@v4
 
@@ -12,20 +12,20 @@ jobs:
         git clone --depth=1 --recursive https://github.com/theos/theos.git ~/theos
         echo "THEOS=~/theos" >> $GITHUB_ENV
 
-    # 2. 下载并解压 16.5 SDK 
-    - name: Download Light iOS SDK
+    # 2. 直接把 Mac 系统自带的官方最新 iOS SDK 软链接到 Theos 目录中，0秒搞定，永不失效！
+    - name: Link System iOS SDK
       run: |
         mkdir -p ~/theos/sdks
-        curl -L -o ~/theos/sdks/iPhoneOS16.5.sdk.tar.xz https://github.com/theos/sdks/releases/download/v1.0/iPhoneOS16.5.sdk.tar.xz
-        tar -xf ~/theos/sdks/iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks/
-        rm ~/theos/sdks/iPhoneOS16.5.sdk.tar.xz
+        SYS_SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+        ln -s "$SYS_SDK_PATH" ~/theos/sdks/iPhoneOS.sdk
+        echo "系统自带 SDK 路径: $SYS_SDK_PATH"
 
-    # 3. 开始执行编译打包（添加强制指定本地 SDK 的参数，防止编译器犯迷糊）
+    # 3. 开始执行编译打包
     - name: Build Package
       run: |
         export THEOS=~/theos
         export THEOS_PACKAGE_SCHEME=rootless
-        make package SYSROOT=~/theos/sdks/iPhoneOS16.5.sdk
+        make package SYSROOT=~/theos/sdks/iPhoneOS.sdk
         
     # 4. 上传打包好的 .deb 文件
     - name: Upload Artifact
