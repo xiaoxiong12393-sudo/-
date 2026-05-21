@@ -1,0 +1,95 @@
+#import <UIKit/UIKit.h>
+
+@interface SBApplication : NSObject
+- (NSString *)bundleIdentifier;
+- (NSString *)displayName;
+@end
+
+@interface SBMainWorkspace : NSObject
++ (id)sharedInstance;
+- (id)topApplication;
+@end
+
+@interface SBScreenShotter : NSObject
+- (void)saveScreenshot:(_Bool)arg1;
+@end
+
+@interface UIImage (Private)
++ (UIImage *)_applicationIconImageForBundleIdentifier:(NSString *)bundleIdentifier format:(int)format scale:(CGFloat)scale;
+@end
+
+%hook SBScreenShotter
+
+- (void)saveScreenshot:(_Bool)arg1 {
+    %orig;
+    
+    SBMainWorkspace *workspace = [%c(SBMainWorkspace) sharedInstance];
+    SBApplication *frontApp = nil;
+    
+    if ([workspace respondsToSelector:@selector(topApplication)]) {
+        frontApp = [workspace topApplication];
+    }
+    
+    NSString *appName = frontApp ? [frontApp displayName] : @"系统桌面";
+    NSString *bundleId = frontApp ? [frontApp bundleIdentifier] : @"com.apple.springboard";
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self showIslandNotificationWithAppName:appName bundleId:bundleId];
+    });
+}
+
+%new
+- (void)showIslandNotificationWithAppName:(NSString *)appName bundleId:(NSString *)bundleId {
+    UIScreen *mainScreen = [UIScreen mainScreen];
+    CGRect screenBounds = mainScreen.bounds;
+    
+    CGRect islandInitialFrame = CGRectMake((screenBounds.size.width - 110) / 2, 11, 110, 36);
+    CGRect islandExpandedFrame = CGRectMake((screenBounds.size.width - 200) / 2, 11, 200, 36);
+    
+    UIWindow *islandWindow = [[UIWindow alloc] initWithFrame:islandInitialFrame];
+    islandWindow.windowLevel = UIWindowLevelStatusBar + 100;
+    islandWindow.backgroundColor = [UIColor blackColor];
+    islandWindow.layer.cornerRadius = 18;
+    islandWindow.clipsToBounds = YES;
+    islandWindow.hidden = NO;
+    
+    UIImageView *iconView = [[UIImageView alloc] initWithFrame:CGRectMake(10, 6, 24, 24)];
+    iconView.layer.cornerRadius = 5;
+    iconView.clipsToBounds = YES;
+    iconView.alpha = 0.0;
+    
+    UIImage *appIcon = nil;
+    if ([UIImage respondsToSelector:@selector(_applicationIconImageForBundleIdentifier:format:scale:)]) {
+        appIcon = [UIImage _applicationIconImageForBundleIdentifier:bundleId format:0 scale:[UIScreen mainScreen].scale];
+    }
+    
+    if (appIcon) {
+        iconView.image = appIcon;
+    } else {
+        iconView.backgroundColor = [UIColor systemBlueColor];
+    }
+    [islandWindow addSubview:iconView];
+    
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(40, 0, 150, 36)];
+    label.text = [NSString stringWithFormat:@"已截屏: %@", appName];
+    label.textColor = [UIColor whiteColor];
+    label.font = [UIFont systemFontOfSize:12 weight:UIFontWeightBold];
+    label.alpha = 0.0;
+    [islandWindow addSubview:label];
+    
+    [UIView animateWithDuration:0.6 delay:0.1 usingSpringWithDamping:0.7 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseInOut animations:^{
+        islandWindow.frame = islandExpandedFrame;
+        iconView.alpha = 1.0;
+        label.alpha = 1.0;
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.4 delay:2.0 usingSpringWithDamping:0.8 initialSpringVelocity:0.5 options:UIViewAnimationOptionCurveEaseInOut animations:^{
+            islandWindow.frame = islandInitialFrame;
+            iconView.alpha = 0.0;
+            label.alpha = 0.0;
+        } completion:^(BOOL f) {
+            islandWindow.hidden = YES;
+        }];
+    }];
+}
+
+%end
