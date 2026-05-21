@@ -4,15 +4,19 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
+    # 换成目前社区最稳定的 theos 自动化配置环境
     - name: Setup Theos
-      uses: 2364121961/theos-action@main
+      uses: theos/theos-action@v1
+
     - name: Build Package
       run: |
         export THEOS_PACKAGE_SCHEME=rootless
         make package
+        
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ScreenshotIsland-DEB
         path: packages/*.deb
