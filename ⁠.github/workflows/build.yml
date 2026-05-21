@@ -12,20 +12,21 @@ jobs:
         git clone --depth=1 --recursive https://github.com/theos/theos.git ~/theos
         echo "THEOS=~/theos" >> $GITHUB_ENV
 
-    # 2. 直接把 Mac 系统自带的官方最新 iOS SDK 软链接到 Theos 目录中，0秒搞定，永不失效！
-    - name: Link System iOS SDK
+    # 2. 精准下载并解压适配 iOS 16.6 的官方越狱 SDK
+    - name: Download iOS 16.6 SDK
       run: |
         mkdir -p ~/theos/sdks
-        SYS_SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
-        ln -s "$SYS_SDK_PATH" ~/theos/sdks/iPhoneOS.sdk
-        echo "系统自带 SDK 路径: $SYS_SDK_PATH"
+        # 从社区稳定的专用源下载 iOS 16.6 SDK 压缩包
+        curl -L -o ~/theos/sdks/iPhoneOS16.6.sdk.tar.xz https://github.com/theos/sdks/releases/download/16.6/iPhoneOS16.6.sdk.tar.xz
+        tar -xf ~/theos/sdks/iPhoneOS16.6.sdk.tar.xz -C ~/theos/sdks/
+        rm ~/theos/sdks/iPhoneOS16.6.sdk.tar.xz
 
-    # 3. 开始执行编译打包
+    # 3. 开始执行编译打包（指定使用 16.6 SDK 进行无根编译）
     - name: Build Package
       run: |
         export THEOS=~/theos
         export THEOS_PACKAGE_SCHEME=rootless
-        make package SYSROOT=~/theos/sdks/iPhoneOS.sdk
+        make package SYSROOT=~/theos/sdks/iPhoneOS16.6.sdk
         
     # 4. 上传打包好的 .deb 文件
     - name: Upload Artifact
