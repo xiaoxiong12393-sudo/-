@@ -1,0 +1,18 @@
+name: Build Tweak
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Theos
+      uses: 2364121961/theos-action@main
+    - name: Build Package
+      run: |
+        export THEOS_PACKAGE_SCHEME=rootless
+        make package
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ScreenshotIsland-DEB
+        path: packages/*.deb
