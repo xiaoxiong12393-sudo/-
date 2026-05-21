@@ -6,22 +6,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # 1. 浅层克隆 Theos 核心
+    # 1. 浅层克隆 Theos 核心（只要 3 秒）
     - name: Clone Theos
       run: |
         git clone --depth=1 --recursive https://github.com/theos/theos.git ~/theos
         echo "THEOS=~/theos" >> $GITHUB_ENV
 
-    # 2. 精准下载并解压适配 iOS 16.6 的官方越狱 SDK
-    - name: Download iOS 16.6 SDK
+    # 2. 0秒搞定：直接软链接 Mac 系统自带的官方 iOS SDK，永不失效，彻底告别解压报错！
+    - name: Link System iOS SDK
       run: |
         mkdir -p ~/theos/sdks
-        # 从社区稳定的专用源下载 iOS 16.6 SDK 压缩包
-        curl -L -o ~/theos/sdks/iPhoneOS16.6.sdk.tar.xz https://github.com/theos/sdks/releases/download/16.6/iPhoneOS16.6.sdk.tar.xz
-        tar -xf ~/theos/sdks/iPhoneOS16.6.sdk.tar.xz -C ~/theos/sdks/
-        rm ~/theos/sdks/iPhoneOS16.6.sdk.tar.xz
+        SYS_SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+        ln -s "$SYS_SDK_PATH" ~/theos/sdks/iPhoneOS16.6.sdk
+        echo "已成功挂载系统 SDK 路径: $SYS_SDK_PATH"
 
-    # 3. 开始执行编译打包（指定使用 16.6 SDK 进行无根编译）
+    # 3. 开始执行编译打包
     - name: Build Package
       run: |
         export THEOS=~/theos
