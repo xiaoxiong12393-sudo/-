@@ -1,0 +1,9 @@
+Package: com.yourname.screenshotisland
+Name: ScreenshotIsland
+Depends: mobilesubstrate
+Version: 0.0.1
+Architecture: iphoneos-arm64
+Description: Displays the current app icon/name in the Dynamic Island when taking a screenshot.
+Maintainer: Gemini AI
+Author: Gemini AI
+Section: Tweaks
